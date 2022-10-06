@@ -1,0 +1,184 @@
+---
+title: "Multiple Linear Regression on housing prices"
+author: "Ankit Gahlawat"
+date: "2022-09-29"
+output: html_document
+---
+## I aim to predict the  house price of unit area while considering several factors.
+### I intend to use multiple regression model for the same . Considering house price as the dependent variable and transaction date , age of the house , distance from nearest station , convenience store in the locality, latitude , longitude of the house as the explanatory variables.
+
+
+##### Importing libraries
+```{r}
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+```
+
+
+### Importing Dataset
+
+```{r}
+housing_data=read.csv("C:/Users/Ankit kumar gahlawat/Desktop/R project/Realestate.csv")
+head(housing_data)
+summary(housing_data)
+colnames(housing_data)[2:8]=c('t_date','house_age','dist','con_store','lattitude',
+                              'longitude','house_price'  )
+
+glimpse(housing_data)
+ 
+```
+### All the variables are continuous , we will perform some EDA now.
+
+##### 1. 
+
+
+
+```{r}
+g1 = housing_data %>%
+  ggplot(aes(house_age, y = house_price)) +
+    geom_point(aes(col = dist)) +
+  labs(title = "Scatterplot of House Prices vs House age",
+       subtitle = "According to distance from nearest station",
+       col = "Distance") +
+  xlab("House age") + ylab("House Price") +
+  theme_classic()
+
+g2 = housing_data %>%
+  ggplot(aes(con_store, y = house_price)) +
+    labs(title = "Scatterplot of House Prices vs number of convenience stores",
+         subtitle = "According to distance from nearest station",
+       col = "Distance") +
+  xlab("Number of convenience stores") + ylab("House Price") +
+    geom_point(aes(col = dist)) +
+  geom_smooth() +
+  theme_classic()
+
+g1
+g2
+```
+
+
+
+
+```{r}
+housing_data %>%
+  ggplot() + 
+  geom_bar(aes(x = con_store), fill = 3) +
+  theme_classic2()
+```
+
+
+
+```{r}
+housing_data %>%
+  ggplot() + 
+  geom_histogram(aes(x = house_age), col = 1, fill = rgb(0.4, 0.7, 0.9)) 
+  
+```
+
+### Checking the assumptions for multiple linear regression 
+```{r}
+correlation=round(cor(housing_data[-1]),1)
+correlation
+
+
+
+
+```
+
+### Applying the regression model now
+```{r}
+mult_regression1= lm(house_price ~ t_date+house_age+dist+con_store+lattitude+longitude,
+                    data=housing_data) 
+anova(mult_regression1)
+summary(mult_regression1)
+plot(mult_regression1)
+```
+
+##### By inspection of the data, we can see that longitude should be dropped since the p-value  for this variable is large.
+
+
+### Running the linear regression model without longitude , and plotting it.
+
+##### By inspection of the linear regression models, the p-values  and the R^2 are acceptable. Moreover, from the first graph , the homoscedasticity is respected since the lines are almost horizontal. However, from the second graph, the residuals do not seem normally distributed since there are many points that are far from the straight line. I will then try to improve the model by applying a log transformation to the model.
+
+```{r}
+mult_regression2= lm(house_price ~ t_date+house_age+dist+con_store+lattitude,
+                    data=housing_data) 
+summary(mult_regression2)
+anova(mult_regression2)
+plot(mult_regression2)
+```
+
+
+
+
+###  Running the linear regression with log transformation
+
+##### conclusion : 
+##### 1. The p-values stays acceptable
+##### 2. The R^2 value improved from 0.5823 to 0.6857
+##### 3. The homoscedasticity has also improved since the line in the first graph are more horizontal than in the previous model
+##### 4 The points of the residuals are closer to the straight line compared to the last model, but there is still room for improvement. I will try to remove one variable from the model to get a better result.
+
+```{r}
+mult_regression3= lm(log(house_price) ~ t_date+house_age+dist+con_store+lattitude,
+                    data=housing_data) 
+summary(mult_regression3)
+anova(mult_regression3)
+plot(mult_regression3)
+#ggplot(data=housing_data, aes(log(house_price))) + 
+  #geom_histogram(breaks=seq(0, 2, by=0.15), 
+   #              col="red", 
+    #             aes(fill=..count..)) +
+ # scale_fill_gradient("Count", low="green", high="red")+
+  #labs(title="Histogram Log House Price Unit Area",x="Log Unit Area",y="Count")
+
+
+```
+
+
+
+
+### Analyzing which variable should be dropped
+
+##### The variables that have the lowest correlation with house price is t_date and house_age.
+##### I will  try to run the regression without this variable in the model to see what is going to happen.
+
+
+```{r}
+pairs(~ house_price + t_date + house_age + dist + con_store + 
+    lattitude, data = housing_data,  main = "Real Estate Data")
+```
+
+
+### Applying Regression again without using t_date and  house_age
+
+###### Even if the R^2 has decreased a little bit comparatively the normality of residuals has gotten much better without t_date and house_age in the set. The results in general are similar in both sets. I will therefore accept this model. Hence , my final adjusted R^2 comes out to be 0.6334
+
+
+```{r}
+mult_regression4= lm(log(house_price) ~ dist+con_store+lattitude,
+                    data=housing_data) 
+summary(mult_regression4)
+anova(mult_regression4)
+plot(mult_regression4)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
